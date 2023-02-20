@@ -12,43 +12,43 @@ int z;                        // z axis variable
 const int PulseWire = 3;      // PulseSensor PURPLE WIRE connected to ANALOG PIN 3
 const int LED = LED_BUILTIN;  // The on-board Arduino LED, close to PIN 13.
 const int MAX_FAIL_COUNT = 10;
+const int SLEEP_TIME = 10;
 int Threshold = 550;
 int sleeptimer = 0;
 int i = 0;
 int ledState = LOW;
 const int ledPin = LED_BUILTIN;
+const int MINaccThreshold = 7;
+const int MAXaccThreshold = 177;
 
 bool isMoving(int dx, int dy, int dz) {
-  if (dx > 10)
+  if (dx > MINaccThreshold || dy > MINaccThreshold || dz > MINaccThreshold)
     return (true);
-  if (dy > 10)
-    return (true);
-  if (dz > 10)
-    return (true);
-  if (dx < 10)
-    if (dy < 10)
-      if (dz < 10)
-        return (false);
+  if (dx < MINaccThreshold && dy < MINaccThreshold && dz < MINaccThreshold)
+    return (false);
 }
 
-bool isValid(float BPM) {
-  if (BPM > 50)
+bool isValidBPM(float BPM, int dx, int dy, int dz) {
+  if (BPM > 50 && dx < MINaccThreshold && dy < MINaccThreshold && dz < MINaccThreshold)
     return (true);
   else
     return (false);
-}  // Determine which Signal to "count as a beat" and which to ignore.
-   // Use the "Gettting Started Project" to fine-tune Threshold Value beyond default setting.
-   // Otherwise leave the default "550" value.
+}  
+
+bool isValidACC(int dx, int dy, int dz) {
+  if (abs(dx) < MAXaccThreshold && abs(dy) < MAXaccThreshold && abs(dz) < MAXaccThreshold)
+    return (true);
+  else
+    return (false);
+}
 
 PulseSensorPlayground pulseSensor;  // Creates an instance of the PulseSensorPlayground object called "pulseSensor"
 #include "RunningAverage.h"
 
 RunningAverage myRA(100);  //change (100) to set interval of avg measurements
-int trials = 0;
 int failedReading = 0;
 
 void setup() {
-  int hrtoavg[100];
   Serial.begin(9600);  // For Serial Monitor
   // Configure the PulseSensor object, by assigning our variables to it.
   pulseSensor.analogInput(PulseWire);
@@ -70,14 +70,29 @@ void loop() {
   if (pulseSensor.sawStartOfBeat()) {  // Constantly test to see if "a beat happened".
   }
 
+  if (isValidACC(diffx, diffy, diffz) == true){
+    for (i = 0; i < 2; i++) {
+      accReadingsx[i] = x;
+      accReadingsy[i] = y;
+      accReadingsz[i] = z;
+      x = analogRead(0);  // read the zeroth analog input pin
+      y = analogRead(1);  // read the first analog input pin
+      z = analogRead(2);  // read the second analog input pin
+      Serial.println("--");
+  }
+  }
+    int diffx = accReadingsx[1] - accReadingsx[0];
+    int diffy = accReadingsy[1] - accReadingsy[0];
+    int diffz = accReadingsz[1] - accReadingsz[0];
 
+  if (isMoving(diffx, diffy, diffz) == true && isValidACC(diffx, diffy, diffz) == true)
+    sleeptimer = 0;
+  else
+    sleeptimer++;
 
-  if (isValid(myBPM) == true) {
-    if (myBPM <= 90) {
-      Serial.println("Are you sleeping?");
-    }
+  if (isValidBPM(myBPM, diffx, diffy, diffz) == true) {
+
     myRA.addValue(myBPM);
-    trials++;
     Serial.print("Running Average: ");
     Serial.println(myRA.getAverage());
     Serial.println(myBPM);
@@ -94,28 +109,10 @@ void loop() {
     }
   }
 
-  for (i = 0; i < 2; i++) {
-    accReadingsx[i] = x;
-    accReadingsy[i] = y;
-    accReadingsz[i] = z;
-    x = analogRead(2);  // read the second analog input pin
-    y = analogRead(1);  // read the first analog input pin
-    z = analogRead(0);  // read the zeroth analog input pin
-    Serial.println("--");
-    i = i++ % 2;
-  }
-
-  int diffx = accReadingsx[1] - accReadingsx[0];
-  int diffy = accReadingsy[1] - accReadingsy[0];
-  int diffz = accReadingsz[1] - accReadingsz[0];
-
-  if (isMoving(diffx, diffy, diffz) == true)
-    sleeptimer = 0;
-  else
-    sleeptimer++;
+  
 
 
-  if (sleeptimer >= 10){
+  if (sleeptimer >= SLEEP_TIME){
     Serial.println("l bozo");
     if (ledState == LOW) {
     ledState = HIGH;
@@ -125,7 +122,6 @@ void loop() {
   }
     digitalWrite(ledPin, ledState);
   }
-
 
 
   Serial.println(diffx);
