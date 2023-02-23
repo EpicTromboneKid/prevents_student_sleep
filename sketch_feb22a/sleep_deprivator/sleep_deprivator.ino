@@ -48,7 +48,7 @@ int trials = 0;
 int failedReading = 0;
 
 void setup() {
-  int hrtoavg[100];
+  int hrtoavg[3];
   Serial.begin(9600);  // For Serial Monitor
   // Configure the PulseSensor object, by assigning our variables to it.
   pulseSensor.analogInput(PulseWire);
