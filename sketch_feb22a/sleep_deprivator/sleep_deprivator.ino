@@ -43,12 +43,11 @@ bool isValid(float BPM) {
 PulseSensorPlayground pulseSensor;  // Creates an instance of the PulseSensorPlayground object called "pulseSensor"
 #include "RunningAverage.h"
 
-RunningAverage myRA(100);  //change (100) to set interval of avg measurements
+RunningAverage myRA(5);  //change (5) to set interval of avg measurements
 int trials = 0;
 int failedReading = 0;
 
 void setup() {
-  int hrtoavg[3];
   Serial.begin(9600);  // For Serial Monitor
   // Configure the PulseSensor object, by assigning our variables to it.
   pulseSensor.analogInput(PulseWire);
