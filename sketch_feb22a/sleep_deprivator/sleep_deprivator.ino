@@ -13,14 +13,14 @@ int Threshold = 550;
 int sleeptimer = 0;
 int i = 0;
 int sleepState = LOW;
-int runningAverage = 0;
+int runningAverage = 90;
 
 const int PulseWire = 3;      // PulseSensor PURPLE WIRE connected to ANALOG PIN 3
 const int LED = LED_BUILTIN;  // The on-board Arduino LED, close to PIN 13.
 const int MAX_FAIL_COUNT = 10;
 const int ledPin = LED_BUILTIN;
 const int CAMpin = 2;
-const int THRESHOLD_BPM = 80;
+const int THRESHOLD_BPM = 90;
 
 
 
@@ -31,8 +31,8 @@ bool isMoving(int dx, int dy, int dz) {
         return (false);
 }
 
-bool isValid(float BPM) {
-  if (BPM > 50)
+bool isValid(float BPM, int rAvg) {
+  if (BPM > 50 && abs(BPM - rAvg) <= 20 && abs(BPM - rAvg) >= 0)
     return (true);
   else
     return (false);
@@ -70,15 +70,12 @@ void loop() {
   if (pulseSensor.sawStartOfBeat()) {  // Constantly test to see if "a beat happened".
   }
 
-
-
-  if (isValid(myBPM) == true) {
+  if (isValid(myBPM, runningAverage) == true) {
     if (myBPM <= THRESHOLD_BPM) {
       Serial.println("Are you sleeping?");
     }
     myRA.addValue(myBPM);
     runningAverage = myRA.getAverage();
-    trials++;
     Serial.print("Running Average: ");
     Serial.println(runningAverage);
     Serial.println(myBPM);
@@ -113,11 +110,11 @@ void loop() {
   if (isMoving(diffx, diffy, diffz) == true){
     sleeptimer = 0;
   }
-  else if (runningAverage < THRESHOLD_BPM){
+  else if (runningAverage < THRESHOLD_BPM && isValid(myBPM, runningAverage) == true){
     sleeptimer++;
   }
   
-  if (sleeptimer >= 10){      //change the number after ">=" for testing
+  if (sleeptimer >= 10 && isValid(myBPM, runningAverage) == true){      //change the number after ">=" for testing
     Serial.println("l bozo");
     if (sleepState == LOW) {
     sleepState = HIGH;
@@ -139,6 +136,7 @@ void loop() {
   Serial.println(diffy);
   Serial.println(diffz);
   Serial.println(sleeptimer);
+  Serial.println(myBPM - runningAverage);
 
 
 
